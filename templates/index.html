@@ -219,6 +219,35 @@
             cursor: not-allowed;
         }
 
+        /* Editable content styles */
+        .editable {
+            border: 1px solid transparent;
+            padding: 0.5rem;
+            border-radius: 0.25rem;
+            transition: all 0.2s;
+            min-height: 1.5rem;
+        }
+
+        .editable:hover {
+            border-color: var(--border);
+            background: rgba(var(--accent), 0.3);
+        }
+
+        .editable:focus {
+            outline: none;
+            border-color: var(--ring);
+            box-shadow: 0 0 0 2px rgba(var(--ring), 0.2);
+            background: var(--card);
+        }
+
+        .editable p {
+            margin-bottom: 1rem;
+        }
+
+        .editable p:last-child {
+            margin-bottom: 0;
+        }
+
         /* Buttons */
         .button {
             display: inline-flex;
@@ -360,6 +389,17 @@
             padding: 1.5rem;
         }
 
+        .metadata-field {
+            display: flex;
+            align-items: center;
+            margin-bottom: 0.75rem;
+        }
+
+        .metadata-field strong {
+            min-width: 80px;
+            margin-right: 0.5rem;
+        }
+
         .section-item {
             margin-bottom: 2rem;
         }
@@ -378,6 +418,17 @@
             line-height: 1.7;
         }
 
+        /* Sources styling */
+        .sources-list {
+            list-style: decimal;
+            padding-left: 1.5rem;
+        }
+
+        .sources-list li {
+            margin-bottom: 0.5rem;
+            line-height: 1.5;
+        }
+
         /* Download section */
         .download-grid {
             display: grid;
@@ -392,12 +443,6 @@
             gap: 0.5rem;
             font-size: 1.25rem;
             font-family: var(--font-serif);
-        }
-
-        .coming-soon {
-            font-size: 0.75rem;
-            opacity: 0.6;
-            margin-left: 0.5rem;
         }
 
         /* Icons */
@@ -426,6 +471,17 @@
         /* Hidden utility */
         .hidden {
             display: none;
+        }
+
+        /* Error state */
+        .error-message {
+            color: #dc2626;
+            font-weight: 500;
+            text-align: center;
+            padding: 1rem;
+            background: rgba(220, 38, 38, 0.1);
+            border-radius: 0.5rem;
+            margin: 1rem 0;
         }
     </style>
 </head>
@@ -491,7 +547,21 @@
         <div id="assignmentOutput" class="hidden animate-fade-in">
             <!-- Assignment Title -->
             <div class="card">
-                <div class="assignment-title" contenteditable="true" id="assignmentTitle"></div>
+                <div class="assignment-title editable" contenteditable="true" id="assignmentTitle" data-placeholder="Assignment Title"></div>
+            </div>
+
+            <!-- Assignment Metadata -->
+            <div class="card">
+                <div class="card-content">
+                    <div class="metadata-field">
+                        <strong>Author:</strong>
+                        <span class="editable" contenteditable="true" id="assignmentAuthor" data-placeholder="Author name">AI Research Assistant</span>
+                    </div>
+                    <div class="metadata-field">
+                        <strong>Date:</strong>
+                        <span class="editable" contenteditable="true" id="assignmentDate" data-placeholder="Date"></span>
+                    </div>
+                </div>
             </div>
 
             <!-- Assignment Sections -->
@@ -506,8 +576,7 @@
                             </svg>
                         </button>
                         <div id="introduction" class="accordion-content">
-                            <p contenteditable="true" id="introContent"></p>
-
+                            <div class="editable" contenteditable="true" id="introContent" data-placeholder="Introduction content will appear here..."></div>
                         </div>
                     </div>
 
@@ -533,7 +602,20 @@
                             </svg>
                         </button>
                         <div id="conclusion" class="accordion-content">
-                            <p contenteditable="true" id="conclusionContent"></p>
+                            <div class="editable" contenteditable="true" id="conclusionContent" data-placeholder="Conclusion content will appear here..."></div>
+                        </div>
+                    </div>
+
+                    <!-- Sources (Read-only) -->
+                    <div class="accordion-item">
+                        <button class="accordion-trigger" onclick="toggleAccordion('sources')">
+                            Sources
+                            <svg class="icon chevron" id="sourcesChevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="6,9 12,15 18,9"></polyline>
+                            </svg>
+                        </button>
+                        <div id="sources" class="accordion-content">
+                            <div id="sourcesContent"></div>
                         </div>
                     </div>
                 </div>
@@ -553,10 +635,36 @@
                 </div>
                 <div class="card-content">
                     <div class="download-grid">
-                        <button class="button button-outline" onclick="downloadFile('txt')">Download as .txt</button>
-                        <button class="button button-outline" onclick="downloadFile('pdf')">Download as .pdf</button>
-                        <button class="button button-outline" onclick="downloadFile('docx')">Download as .docx</button>
+                        <button class="button button-outline" onclick="downloadFile('txt')">
+                            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                <polyline points="14,2 14,8 20,8"/>
+                                <line x1="16" y1="13" x2="8" y2="13"/>
+                                <line x1="16" y1="17" x2="8" y2="17"/>
+                            </svg>
+                            Download as .txt
+                        </button>
+                        <button class="button button-outline" onclick="downloadFile('pdf')">
+                            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                <polyline points="14,2 14,8 20,8"/>
+                                <line x1="16" y1="13" x2="8" y2="13"/>
+                                <line x1="16" y1="17" x2="8" y2="17"/>
+                            </svg>
+                            Download as .pdf
+                        </button>
+                        <button class="button button-outline" onclick="downloadFile('docx')">
+                            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                <polyline points="14,2 14,8 20,8"/>
+                                <line x1="16" y1="13" x2="8" y2="13"/>
+                                <line x1="16" y1="17" x2="8" y2="17"/>
+                            </svg>
+                            Download as .docx
+                        </button>
                     </div>
+                    <div style="margin-top: 1rem; text-align: center; color: var(--muted-foreground); font-size: 0.875rem;">
+                        💡 All downloads include your edits made above
                     </div>
                 </div>
             </div>
@@ -564,41 +672,9 @@
     </div>
 
     <script>
-
-        function downloadFile(format) {
-            const title = document.getElementById("assignmentTitle").textContent;
-            const introduction = document.getElementById("introContent").textContent;
-            const conclusion = document.getElementById("conclusionContent").textContent;
-
-            const sections = [];
-            document.querySelectorAll("#sectionsContent .section-item").forEach(item => {
-                const title = item.querySelector(".section-title").textContent;
-                const content = item.querySelector(".section-content").textContent;
-                sections.push({ title, content });
-            });
-
-            fetch("/download-edited", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ format, title, introduction, conclusion, sections })
-            })
-            .then(res => {
-                if (!res.ok) throw new Error("Download failed.");
-                return res.blob();
-            })
-            .then(blob => {
-                const link = document.createElement("a");
-                link.href = window.URL.createObjectURL(blob);
-                link.download = `assignment.${format}`;
-                link.click();
-            })
-            .catch(err => alert("Download failed: " + err.message));
-        }
-
-
         // State management
         let isLoading = false;
-        let assignment = null;
+        let assignmentData = null;
 
         // DOM elements
         const topicInput = document.getElementById('topicInput');
@@ -622,100 +698,161 @@
             generateBtn.disabled = !this.value.trim() || isLoading;
         });
 
-        // Generate assignment function
-        async function generateAssignment() {
-    const topic = topicInput.value.trim();
-    if (!topic || isLoading) return;
-
-    isLoading = true;
-    generateBtn.disabled = true;
-    generateBtn.innerHTML = `
-        <div class="spinner animate-spin" style="width: 1.25rem; height: 1.25rem; margin-right: 0.5rem; border: 2px solid rgba(255,255,255,0.3); border-top: 2px solid white; border-radius: 50%;"></div>
-        Generating Assignment...
-    `;
-
-    loadingCard.classList.remove('hidden');
-    assignmentOutput.classList.add('hidden');
-
-    let messageIndex = 0;
-    loadingMessage.textContent = loadingMessages[0];
-
-    const messageInterval = setInterval(() => {
-        messageIndex = (messageIndex + 1) % loadingMessages.length;
-        loadingMessage.textContent = loadingMessages[messageIndex];
-    }, 800);
-
-    try {
-        const response = await fetch("/generate", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ topic })
+        // Add event listeners for content changes to track edits
+        document.addEventListener('input', function(e) {
+            if (e.target.contentEditable === 'true') {
+                console.log('Content edited:', e.target.id);
+            }
         });
 
-        const data = await response.json();
-        if (data.error) throw new Error(data.error);
+        // Add placeholder behavior for editable elements
+        document.addEventListener('focus', function(e) {
+            if (e.target.contentEditable === 'true' && e.target.textContent.trim() === '') {
+                e.target.textContent = '';
+            }
+        }, true);
 
-        const parsed = JSON.parse(data.output);
+        document.addEventListener('blur', function(e) {
+            if (e.target.contentEditable === 'true' && e.target.textContent.trim() === '') {
+                const placeholder = e.target.getAttribute('data-placeholder');
+                if (placeholder) {
+                    e.target.innerHTML = `<em style="color: var(--muted-foreground);">${placeholder}</em>`;
+                }
+            }
+        }, true);
 
-        assignment = {
+        // Generate assignment function
+        async function generateAssignment() {
+            const topic = topicInput.value.trim();
+            if (!topic || isLoading) return;
 
-            title: parsed.topic,
-            introduction: parsed.introduction,
-            sections: parsed.main_sections,  // Already has array of { title, content }
-            conclusion: parsed.conclusion
-        };
+            isLoading = true;
+            generateBtn.disabled = true;
+            generateBtn.innerHTML = `
+                <div class="spinner animate-spin" style="width: 1.25rem; height: 1.25rem; margin-right: 0.5rem; border: 2px solid rgba(255,255,255,0.3); border-top: 2px solid white; border-radius: 50%;"></div>
+                Generating Assignment...
+            `;
 
+            loadingCard.classList.remove('hidden');
+            assignmentOutput.classList.add('hidden');
 
-        clearInterval(messageInterval);
-        displayAssignment();
+            let messageIndex = 0;
+            loadingMessage.textContent = loadingMessages[0];
 
-    } catch (error) {
-        console.error("Error generating assignment:", error);
-        alert("Failed to generate assignment. Please try again.");
-    } finally {
-        isLoading = false;
-        generateBtn.disabled = false;
-        generateBtn.innerHTML = `
-            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                <polyline points="14,2 14,8 20,8"/>
-                <line x1="16" y1="13" x2="8" y2="13"/>
-                <line x1="16" y1="17" x2="8" y2="17"/>
-                <polyline points="10,9 9,9 8,9"/>
-            </svg>
-            Generate Assignment
-        `;
-        loadingCard.classList.add("hidden");
-    }
-}
+            const messageInterval = setInterval(() => {
+                messageIndex = (messageIndex + 1) % loadingMessages.length;
+                loadingMessage.textContent = loadingMessages[messageIndex];
+            }, 800);
+
+            try {
+                const response = await fetch("/generate", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ topic })
+                });
+
+                const result = await response.json();
+                if (result.error) throw new Error(result.error);
+
+                // Store the assignment data globally
+                assignmentData = result.data;
+
+                clearInterval(messageInterval);
+                displayAssignment();
+
+            } catch (error) {
+                console.error("Error generating assignment:", error);
+                clearInterval(messageInterval);
+                showError("Failed to generate assignment: " + error.message);
+            } finally {
+                isLoading = false;
+                generateBtn.disabled = false;
+                generateBtn.innerHTML = `
+                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                        <polyline points="14,2 14,8 20,8"/>
+                        <line x1="16" y1="13" x2="8" y2="13"/>
+                        <line x1="16" y1="17" x2="8" y2="17"/>
+                        <polyline points="10,9 9,9 8,9"/>
+                    </svg>
+                    Generate Assignment
+                `;
+                loadingCard.classList.add("hidden");
+            }
+        }
+
+        // Show error function
+        function showError(message) {
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'card';
+            errorDiv.innerHTML = `
+                <div class="card-content">
+                    <div class="error-message">
+                        <strong>Error:</strong> ${message}
+                    </div>
+                </div>
+            `;
+            
+            // Insert error card after loading card
+            loadingCard.parentNode.insertBefore(errorDiv, loadingCard.nextSibling);
+            
+            // Remove error after 5 seconds
+            setTimeout(() => {
+                errorDiv.remove();
+            }, 5000);
+        }
 
         // Display assignment function
         function displayAssignment() {
-            if (!assignment) return;
+            if (!assignmentData) return;
 
-            // Set title
-            document.getElementById('assignmentTitle').textContent = assignment.title;
+            // Set title and metadata
+            document.getElementById('assignmentTitle').textContent = assignmentData.topic || 'Assignment';
+            document.getElementById('assignmentAuthor').textContent = assignmentData.author || 'AI Research Assistant';
+            document.getElementById('assignmentDate').textContent = assignmentData.date || new Date().toLocaleDateString();
 
             // Set introduction
-            document.getElementById('introContent').textContent = assignment.introduction;
+            const introContent = document.getElementById('introContent');
+            introContent.innerHTML = formatTextWithParagraphs(assignmentData.introduction || '');
 
             // Set sections
             const sectionsContent = document.getElementById('sectionsContent');
             sectionsContent.innerHTML = '';
-            assignment.sections.forEach((section, index) => {
-                const sectionDiv = document.createElement('div');
-                sectionDiv.className = 'section-item';
-                sectionDiv.innerHTML = `
-                <h4 class="section-title" contenteditable="true">${index + 1}. ${section.title}</h4>
-                <div class="section-content" contenteditable="true">
-                    <p>${section.content}</p>
-                </div>
-                `;
-                sectionsContent.appendChild(sectionDiv);
-            });
+            if (assignmentData.main_sections && assignmentData.main_sections.length > 0) {
+                assignmentData.main_sections.forEach((section, index) => {
+                    const sectionDiv = document.createElement('div');
+                    sectionDiv.className = 'section-item';
+                    sectionDiv.innerHTML = `
+                        <h4 class="section-title editable" contenteditable="true" data-placeholder="Section title">${index + 1}. ${section.title || 'Untitled Section'}</h4>
+                        <div class="section-content editable" contenteditable="true" data-placeholder="Section content">
+                            ${formatTextWithParagraphs(section.content || '')}
+                        </div>
+                    `;
+                    sectionsContent.appendChild(sectionDiv);
+                });
+            } else {
+                sectionsContent.innerHTML = '<p><em>No sections available</em></p>';
+            }
 
             // Set conclusion
-            document.getElementById('conclusionContent').textContent = assignment.conclusion;
+            const conclusionContent = document.getElementById('conclusionContent');
+            conclusionContent.innerHTML = formatTextWithParagraphs(assignmentData.conclusion || '');
+
+            // Set sources (read-only)
+            const sourcesContent = document.getElementById('sourcesContent');
+            sourcesContent.innerHTML = '';
+            if (assignmentData.sources && assignmentData.sources.length > 0) {
+                const sourcesList = document.createElement('ol');
+                sourcesList.className = 'sources-list';
+                assignmentData.sources.forEach(source => {
+                    const li = document.createElement('li');
+                    li.textContent = source;
+                    sourcesList.appendChild(li);
+                });
+                sourcesContent.appendChild(sourcesList);
+            } else {
+                sourcesContent.innerHTML = '<p><em>No sources available</em></p>';
+            }
 
             // Show assignment output
             assignmentOutput.classList.remove('hidden');
@@ -724,6 +861,150 @@
             openAccordion('introduction');
             openAccordion('sections'); 
             openAccordion('conclusion');
+            openAccordion('sources');
+        }
+
+        // Helper function to format text with paragraphs
+        function formatTextWithParagraphs(text) {
+            if (!text) return '';
+            
+            // Clean the text
+            const cleanText = text.trim();
+            if (!cleanText) return '';
+            
+            // Split by double newlines and create paragraphs
+            const paragraphs = cleanText.split(/\n\s*\n/).filter(p => p.trim());
+            if (paragraphs.length > 1) {
+                return paragraphs.map(p => `<p>${p.trim()}</p>`).join('');
+            } else {
+                // Single paragraph or no line breaks
+                return `<p>${cleanText}</p>`;
+            }
+        }
+
+        // Helper function to extract text content from HTML elements
+        function getTextContent(element) {
+            return element.textContent || element.innerText || '';
+        }
+
+        // Download function that uses current displayed content (including edits)
+        function downloadFile(format) {
+            if (!assignmentData) {
+                alert('No assignment data available. Please generate an assignment first.');
+                return;
+            }
+
+            // Get current content from the DOM (including any edits)
+            const title = getTextContent(document.getElementById("assignmentTitle"));
+            const author = getTextContent(document.getElementById("assignmentAuthor"));
+            const date = getTextContent(document.getElementById("assignmentDate"));
+            const introduction = getTextContent(document.getElementById("introContent"));
+            const conclusion = getTextContent(document.getElementById("conclusionContent"));
+
+            // Get sections from DOM
+            const sections = [];
+            document.querySelectorAll("#sectionsContent .section-item").forEach(item => {
+                const titleElement = item.querySelector(".section-title");
+                const contentElement = item.querySelector(".section-content");
+                if (titleElement && contentElement) {
+                    const titleText = getTextContent(titleElement);
+                    const contentText = getTextContent(contentElement);
+                    
+                    sections.push({
+                        title: titleText.replace(/^\d+\.\s*/, ''), // Remove numbering
+                        content: contentText
+                    });
+                }
+            });
+
+            // Show loading state on button
+            const downloadButtons = document.querySelectorAll('.download-grid .button');
+            downloadButtons.forEach(btn => {
+                btn.disabled = true;
+                if (btn.onclick.toString().includes(format)) {
+                    btn.innerHTML = `
+                        <div class="spinner animate-spin" style="width: 1rem; height: 1rem; margin-right: 0.5rem; border: 2px solid rgba(0,0,0,0.3); border-top: 2px solid currentColor; border-radius: 50%;"></div>
+                        Preparing ${format.toUpperCase()}...
+                    `;
+                }
+            });
+
+            // Send to server for file generation
+            fetch("/download-edited", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ 
+                    format, 
+                    title, 
+                    author,
+                    date,
+                    introduction, 
+                    conclusion, 
+                    sections 
+                })
+            })
+            .then(res => {
+                if (!res.ok) {
+                    return res.json().then(errorData => {
+                        throw new Error(errorData.error || 'Download failed');
+                    });
+                }
+                return res.blob();
+            })
+            .then(blob => {
+                const link = document.createElement("a");
+                link.href = window.URL.createObjectURL(blob);
+                link.download = `assignment.${format}`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                window.URL.revokeObjectURL(link.href);
+            })
+            .catch(err => {
+                console.error('Download error:', err);
+                alert("Download failed: " + err.message);
+            })
+            .finally(() => {
+                // Restore button states
+                downloadButtons.forEach(btn => {
+                    btn.disabled = false;
+                });
+                
+                // Restore original button content
+                const txtBtn = downloadButtons[0];
+                const pdfBtn = downloadButtons[1];
+                const docxBtn = downloadButtons[2];
+                
+                txtBtn.innerHTML = `
+                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                        <polyline points="14,2 14,8 20,8"/>
+                        <line x1="16" y1="13" x2="8" y2="13"/>
+                        <line x1="16" y1="17" x2="8" y2="17"/>
+                    </svg>
+                    Download as .txt
+                `;
+                
+                pdfBtn.innerHTML = `
+                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                        <polyline points="14,2 14,8 20,8"/>
+                        <line x1="16" y1="13" x2="8" y2="13"/>
+                        <line x1="16" y1="17" x2="8" y2="17"/>
+                    </svg>
+                    Download as .pdf
+                `;
+                
+                docxBtn.innerHTML = `
+                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                        <polyline points="14,2 14,8 20,8"/>
+                        <line x1="16" y1="13" x2="8" y2="13"/>
+                        <line x1="16" y1="17" x2="8" y2="17"/>
+                    </svg>
+                    Download as .docx
+                `;
+            });
         }
 
         // Accordion functions
@@ -731,9 +1012,9 @@
             const content = document.getElementById(id);
             const chevron = document.getElementById(id + 'Chevron');
             
-            if (content.classList.contains('hidden')) {
+            if (content && content.classList.contains('hidden')) {
                 openAccordion(id);
-            } else {
+            } else if (content) {
                 closeAccordion(id);
             }
         }
@@ -742,36 +1023,60 @@
             const content = document.getElementById(id);
             const chevron = document.getElementById(id + 'Chevron');
             
-            content.classList.remove('hidden');
-            chevron.classList.add('rotated');
+            if (content && chevron) {
+                content.classList.remove('hidden');
+                chevron.classList.add('rotated');
+            }
         }
 
         function closeAccordion(id) {
             const content = document.getElementById(id);
             const chevron = document.getElementById(id + 'Chevron');
             
-            content.classList.add('hidden');
-            chevron.classList.remove('rotated');
+            if (content && chevron) {
+                content.classList.add('hidden');
+                chevron.classList.remove('rotated');
+            }
         }
 
-        // For actual API integration, replace the mock with:
-        /*
-        async function callAPI(topic) {
-            const response = await fetch('/generate', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ topic: topic })
-            });
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', function() {
+            // Set initial button state
+            generateBtn.disabled = !topicInput.value.trim();
             
-            if (!response.ok) {
-                throw new Error('Failed to generate assignment');
+            // Focus on topic input
+            topicInput.focus();
+        });
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            // Ctrl/Cmd + Enter to generate
+            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter' && !isLoading) {
+                if (topicInput.value.trim()) {
+                    generateAssignment();
+                }
             }
             
-            return await response.json();
-        }
-        */
+            // Escape to clear focus from editable elements
+            if (e.key === 'Escape' && document.activeElement.contentEditable === 'true') {
+                document.activeElement.blur();
+            }
+        });
+
+        // Auto-save indicator (optional feature)
+        let editTimeout;
+        document.addEventListener('input', function(e) {
+            if (e.target.contentEditable === 'true') {
+                // Clear previous timeout
+                clearTimeout(editTimeout);
+                
+                // Show saving indicator after 1 second of inactivity
+                editTimeout = setTimeout(() => {
+                    console.log('Auto-save would trigger here');
+                    // You could implement an auto-save feature here
+                }, 1000);
+            }
+        });
     </script>
 </body>
 </html>

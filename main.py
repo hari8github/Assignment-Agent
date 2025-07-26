@@ -10,6 +10,7 @@ from datetime import datetime
 
 load_dotenv()
 
+# Clear previous sources at start
 search_tracker.found_sources = []
 wiki_tracker.found_sources = []
 
@@ -54,80 +55,59 @@ research_prompt = ChatPromptTemplate.from_messages([
     ("placeholder", "{agent_scratchpad}")
 ])
 
-# Main writing prompt - much more detailed and specific
-writing_prompt = ChatPromptTemplate.from_messages(
-    [
-        (
-            "system",
-            """
-            You are an expert academic writer creating a comprehensive university-level assignment.
-            
-            WRITING STANDARDS:
-            - University-level depth and analysis (not high school level)
-            - Each section should be 400-500 words minimum
-            - Use specific examples, dates, names, and case studies
-            - Include multiple perspectives and critical analysis
-            - Write in formal academic tone with sophisticated vocabulary
-            - Avoid cliché phrases like "only as good as the data"
-            
-            CONTENT REQUIREMENTS:
-            - Introduction: Define key terms, provide context, outline what you'll cover (150-200 words)
-            - Each main section should include:
-              * Clear definition and explanation of the concept
-              * Historical context or development
-              * 2-3 specific real-world examples with details
-              * Different perspectives or viewpoints
-              * Current research or developments
-              * Critical analysis of implications
-            - Conclusion: Synthesize key insights, discuss implications, suggest future directions (150-200 words)
-            
-            RESEARCH-BASED WRITING:
-            - Base your content on the Wikipedia research you conducted
-            - Reference specific Wikipedia articles you used
-            - Include dates, names, organizations, and specific events
-            - Show depth of understanding, not surface-level knowledge
-            
-            ACADEMIC QUALITY CHECKLIST:
-            ✓ Uses specific examples with details (names, dates, companies)
-            ✓ Shows understanding of complexity and nuance
-            ✓ Includes multiple perspectives
-            ✓ Demonstrates critical thinking
-            ✓ Uses sophisticated academic vocabulary
-            ✓ Avoids oversimplification
-            ✓ Connects concepts to broader implications
-            
-            JSON FORMAT - Your response must be ONLY this JSON structure:
-            {{
-                "topic": "The exact topic provided",
-                "author": "AI Research Assistant",
-                "date": "{current_date}",
-                "introduction": "A sophisticated introduction that defines key terms, provides historical context, and outlines the assignment scope. Should demonstrate deep understanding and set up complex analysis. (150-200 words)",
-                "main_sections": [
-                    {{
-                        "title": "Descriptive Section Title (not generic)",
-                        "content": "A comprehensive section of 400-500 words that includes: clear explanations, historical context, 2-3 specific examples with details (names, dates, organizations), different perspectives, current developments, and critical analysis. Write in paragraph form with academic sophistication."
-                    }},
-                    {{
-                        "title": "Another Specific Section Title",
-                        "content": "Another detailed 400-500 word section following the same standards..."
-                    }}
-                    // Include exactly 4 main sections
-                ],
-                "conclusion": "A sophisticated conclusion that synthesizes insights, discusses broader implications, acknowledges limitations, and suggests future research directions. Should demonstrate critical thinking and academic maturity. (150-200 words)",
-                "sources": ["List Wikipedia articles you actually referenced"],
-                "tools_used": ["wikipedia", "search"]
-            }}
-            
-            CRITICAL: Base everything on your Wikipedia research. Be specific, detailed, and academic.
-            """,
-        ),
-        ("placeholder", "{chat_history}"),
-        ("human", "Based on your research, write a comprehensive academic assignment on: {query}"),
-        ("placeholder", "{agent_scratchpad}"),
-    ]
-)
+# Simplified writing prompt with strict JSON output
+writing_prompt = ChatPromptTemplate.from_messages([
+    (
+        "system",
+        """
+        You are an expert academic writer creating a comprehensive university-level assignment.
+        
+        CRITICAL: You MUST respond with ONLY a valid JSON object. No other text, no explanations, no markdown formatting.
+        
+        Based on your Wikipedia research, create a well-structured assignment with:
+        - University-level depth and analysis
+        - Each section should be 300-400 words
+        - Specific examples, dates, names, and case studies from your research
+        - Formal academic tone
+        - Multiple perspectives and critical analysis
+        
+        JSON FORMAT - Your response must be EXACTLY this structure with no additional text:
+        {{
+            "topic": "The exact topic provided",
+            "author": "AI Research Assistant", 
+            "date": "{current_date}",
+            "introduction": "A comprehensive introduction that defines key terms, provides context, and outlines the assignment. Should be 150-200 words based on your Wikipedia research.",
+            "main_sections": [
+                {{
+                    "title": "First Section Title",
+                    "content": "Detailed content for this section (300-400 words) with specific examples and analysis based on Wikipedia research."
+                }},
+                {{
+                    "title": "Second Section Title", 
+                    "content": "Detailed content for this section (300-400 words) with specific examples and analysis based on Wikipedia research."
+                }},
+                {{
+                    "title": "Third Section Title",
+                    "content": "Detailed content for this section (300-400 words) with specific examples and analysis based on Wikipedia research."
+                }},
+                {{
+                    "title": "Fourth Section Title",
+                    "content": "Detailed content for this section (300-400 words) with specific examples and analysis based on Wikipedia research."
+                }}
+            ],
+            "conclusion": "A comprehensive conclusion that synthesizes insights, discusses implications, and suggests future directions. Should be 150-200 words.",
+            "sources": [],
+            "tools_used": ["wikipedia"]
+        }}
+        
+        RESPOND WITH ONLY THE JSON OBJECT. NO OTHER TEXT BEFORE OR AFTER.
+        """
+    ),
+    ("placeholder", "{chat_history}"),
+    ("human", "Based on your research, write a comprehensive academic assignment on: {query}"),
+    ("placeholder", "{agent_scratchpad}")
+])
 
-# Two-stage process: Research then Write
 def create_enhanced_assignment(topic: str):
     """Create assignment using two-stage process: research then write"""
     
@@ -158,85 +138,122 @@ def create_enhanced_assignment(topic: str):
     # Write the assignment
     writing_result = writing_executor.invoke({"query": topic})
     
-    return writing_result
+    # Extract and clean the output
+    output = writing_result.get("output", "")
+    
+    # Clean the JSON output
+    cleaned_output = clean_json_output(output)
+    
+    # Parse and add sources
+    try:
+        parsed_data = json.loads(cleaned_output)
+        
+        # Add collected sources if missing or empty
+        if not parsed_data.get('sources') or len(parsed_data['sources']) == 0:
+            collected_sources = get_all_sources()
+            parsed_data['sources'] = collected_sources
+        
+        # Ensure tools_used is set
+        if not parsed_data.get('tools_used'):
+            parsed_data['tools_used'] = ["wikipedia"]
+        
+        # Convert back to JSON string for return
+        final_output = json.dumps(parsed_data, indent=2)
+        
+        return {"output": final_output}
+        
+    except json.JSONDecodeError as e:
+        print(f"JSON parsing error: {e}")
+        # Return error structure
+        error_response = {
+            "topic": topic,
+            "author": "AI Research Assistant",
+            "date": current_date,
+            "introduction": "Error occurred during assignment generation.",
+            "main_sections": [
+                {
+                    "title": "Error Section",
+                    "content": f"An error occurred while generating the assignment: {str(e)}"
+                }
+            ],
+            "conclusion": "Please try again.",
+            "sources": get_all_sources(),
+            "tools_used": ["wikipedia"]
+        }
+        return {"output": json.dumps(error_response, indent=2)}
 
-# Enhanced main execution
+def clean_json_output(output: str) -> str:
+    """Clean and extract JSON from agent output"""
+    if not output:
+        raise ValueError("Empty output received")
+    
+    # Remove any markdown formatting
+    cleaned = output.strip()
+    
+    # Remove code block markers if present
+    if "```json" in cleaned:
+        cleaned = cleaned.split("```json")[1].split("```")[0].strip()
+    elif "```" in cleaned:
+        cleaned = cleaned.split("```")[1].split("```")[0].strip()
+    
+    # Find JSON object using regex
+    json_pattern = r'\{.*\}'
+    json_match = re.search(json_pattern, cleaned, re.DOTALL)
+    
+    if json_match:
+        return json_match.group()
+    else:
+        # If no JSON found, assume the entire cleaned output is JSON
+        return cleaned
+
 def main():
+    """Main execution function"""
     query = input("Enter the topic for the assignment: ")
     print(f"Creating comprehensive assignment on: {query}")
     print("This will involve thorough research and detailed writing...\n")
     
     try:
         # Use two-stage process
-        raw_response = create_enhanced_assignment(query)
+        result = create_enhanced_assignment(query)
         
-        output = raw_response.get("output")
+        output = result.get("output")
         
         if not output:
             raise ValueError("No output received from the agent.")
         
         print("Assignment generated successfully!")
         
-        # Clean and parse JSON
-        cleaned_output = output.strip()
-        
-        if "```json" in cleaned_output:
-            cleaned_output = cleaned_output.split("```json")[1].split("```")[0].strip()
-        elif "```" in cleaned_output:
-            cleaned_output = cleaned_output.split("```")[1].split("```")[0].strip()
-        
-        json_pattern = r'\{.*\}'
-        json_match = re.search(json_pattern, cleaned_output, re.DOTALL)
-        
-        if json_match:
-            json_str = json_match.group()
-        else:
-            json_str = cleaned_output
-        
-        # Parse and validate
-        parsed_data = json.loads(json_str)
-        
-        # Add collected sources if missing
-        if not parsed_data.get('sources') or len(parsed_data['sources']) == 0:
-            collected_sources = get_all_sources()
-            parsed_data['sources'] = collected_sources
-        
-        structured_response = AssignmentResponse.model_validate(parsed_data)
-        
-        # Quality assessment
-        total_words = len(structured_response.introduction.split())
-        for section in structured_response.main_sections:
-            total_words += len(section['content'].split())
-        total_words += len(structured_response.conclusion.split())
-        
-        print("\n" + "="*60)
-        print("ENHANCED ASSIGNMENT COMPLETED")
-        print("="*60)
-        print(f"Topic: {structured_response.topic}")
-        print(f"Total Word Count: ~{total_words} words")
-        print(f"Sections: {len(structured_response.main_sections)}")
-        print(f"Sources: {len(structured_response.sources)}")
-        print(f"Research Depth: {'High' if total_words > 1500 else 'Medium' if total_words > 1000 else 'Low'}")
-        print("="*60)
-        
-        # Save to file
-        save_result = save_tool.func(json_str)
-        print(f"\n✅ {save_result}")
-        
-        # Quality warnings
-        if total_words < 1200:
-            print("\n⚠️  Note: Assignment may be shorter than typical university standards.")
-            print("   Consider requesting more detailed sections.")
+        # Parse and validate the output
+        try:
+            parsed_data = json.loads(output)
+            structured_response = AssignmentResponse.model_validate(parsed_data)
             
-        if len(structured_response.sources) == 0:
-            print("\n⚠️  Warning: No Wikipedia sources were captured during research.")
-            print("   Please verify the Wikipedia tool is working correctly.")
-        
-    except json.JSONDecodeError as e:
-        print(f"❌ JSON parsing error: {e}")
-        print("The agent may not be returning proper JSON format.")
-    except ValueError as e:
-        print(f"❌ Error: {e}")
+            # Quality assessment
+            total_words = len(structured_response.introduction.split())
+            for section in structured_response.main_sections:
+                total_words += len(section['content'].split())
+            total_words += len(structured_response.conclusion.split())
+            
+            print("\n" + "="*60)
+            print("ENHANCED ASSIGNMENT COMPLETED")
+            print("="*60)
+            print(f"Topic: {structured_response.topic}")
+            print(f"Total Word Count: ~{total_words} words")
+            print(f"Sections: {len(structured_response.main_sections)}")
+            print(f"Sources: {len(structured_response.sources)}")
+            print(f"Research Depth: {'High' if total_words > 1500 else 'Medium' if total_words > 1000 else 'Low'}")
+            print("="*60)
+            
+            # Save to file using the save tool
+            save_result = save_tool.func(output)
+            print(f"\n✅ {save_result}")
+            
+        except json.JSONDecodeError as e:
+            print(f"❌ JSON parsing error: {e}")
+            print("Raw output:", output[:500] + "..." if len(output) > 500 else output)
+        except Exception as e:
+            print(f"❌ Validation error: {e}")
+    
     except Exception as e:
         print(f"❌ Unexpected error: {e}")
         print("Please try again or check your configuration.")
