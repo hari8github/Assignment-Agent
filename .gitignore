@@ -1,0 +1,8 @@
+.env 
+
+/assignment_agent
+/__pycache__
+
+assignment.docx
+assignment.pdf
+assignment.txt

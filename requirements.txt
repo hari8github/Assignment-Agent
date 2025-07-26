@@ -1,0 +1,11 @@
+langchain
+wikipedia
+langchain-community
+langchain-groq
+python-dotenv
+pydantic
+duckduckgo-search
+requests
+flask
+python-docx
+reportlab

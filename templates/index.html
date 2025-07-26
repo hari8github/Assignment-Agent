@@ -1,0 +1,777 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Assignment Generator</title>
+    <meta name="description" content="Generate comprehensive, well-structured academic assignments on any topic with AI">
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    
+    <style>
+        /* CSS Variables - Academic Theme */
+        :root {
+            --primary: hsl(212, 100%, 45%);
+            --primary-hover: hsl(212, 100%, 40%);
+            --primary-foreground: hsl(0, 0%, 100%);
+            --background: hsl(210, 20%, 98%);
+            --foreground: hsl(222, 47%, 11%);
+            --card: hsl(0, 0%, 100%);
+            --card-foreground: hsl(222, 47%, 11%);
+            --muted: hsl(210, 40%, 96%);
+            --muted-foreground: hsl(215, 16%, 47%);
+            --accent: hsl(212, 100%, 95%);
+            --border: hsl(214, 32%, 91%);
+            --input: hsl(214, 32%, 91%);
+            --ring: hsl(212, 100%, 45%);
+            --shadow-soft: 0 4px 20px -4px hsl(212 100% 45% / 0.1);
+            --shadow-card: 0 10px 30px -10px hsl(212 100% 45% / 0.15);
+            --font-serif: 'Playfair Display', serif;
+            --font-sans: 'Inter', sans-serif;
+        }
+
+        /* Dark mode variables */
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --background: hsl(222, 47%, 5%);
+                --foreground: hsl(210, 40%, 98%);
+                --card: hsl(222, 47%, 8%);
+                --card-foreground: hsl(210, 40%, 98%);
+                --primary: hsl(212, 100%, 55%);
+                --primary-hover: hsl(212, 100%, 60%);
+                --muted: hsl(217, 33%, 18%);
+                --muted-foreground: hsl(215, 20%, 65%);
+                --accent: hsl(217, 33%, 18%);
+                --border: hsl(217, 33%, 18%);
+                --input: hsl(217, 33%, 18%);
+                --shadow-soft: 0 4px 20px -4px hsl(212 100% 55% / 0.2);
+                --shadow-card: 0 10px 30px -10px hsl(212 100% 55% / 0.25);
+            }
+        }
+
+        /* Base styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-sans);
+            background: linear-gradient(135deg, var(--background), var(--accent));
+            color: var(--foreground);
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        /* Typography */
+        .font-serif {
+            font-family: var(--font-serif);
+        }
+
+        .font-sans {
+            font-family: var(--font-sans);
+        }
+
+        /* Animations */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes scaleIn {
+            from {
+                opacity: 0;
+                transform: scale(0.95);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        @keyframes progress {
+            0% { width: 0%; }
+            50% { width: 70%; }
+            100% { width: 100%; }
+        }
+
+        .animate-fade-in {
+            animation: fadeIn 0.6s ease-out;
+        }
+
+        .animate-scale-in {
+            animation: scaleIn 0.4s ease-out;
+        }
+
+        .animate-spin {
+            animation: spin 1s linear infinite;
+        }
+
+        .animate-progress {
+            animation: progress 3s ease-in-out infinite;
+        }
+
+        /* Layout */
+        .container {
+            max-width: 1024px;
+            margin: 0 auto;
+            padding: 0 1rem;
+        }
+
+        /* Header */
+        .header {
+            text-align: center;
+            padding: 3rem 1rem;
+        }
+
+        .header-title {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+        }
+
+        .header-title h1 {
+            font-size: 3rem;
+            font-weight: 700;
+            font-family: var(--font-serif);
+            color: var(--foreground);
+        }
+
+        .header-subtitle {
+            font-size: 1.125rem;
+            color: var(--muted-foreground);
+            max-width: 32rem;
+            margin: 0 auto;
+        }
+
+        /* Cards */
+        .card {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(8px);
+            border-radius: 0.75rem;
+            box-shadow: var(--shadow-card);
+            border: none;
+            margin-bottom: 2rem;
+        }
+
+        .card-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .card-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            font-family: var(--font-serif);
+            text-align: center;
+            color: var(--card-foreground);
+        }
+
+        .card-content {
+            padding: 1.5rem;
+        }
+
+        /* Form elements */
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .textarea {
+            width: 100%;
+            height: 8rem;
+            padding: 1rem;
+            border: 1px solid var(--input);
+            border-radius: 0.5rem;
+            background: var(--background);
+            color: var(--foreground);
+            font-family: var(--font-sans);
+            font-size: 1rem;
+            resize: none;
+            transition: all 0.2s;
+        }
+
+        .textarea:focus {
+            outline: none;
+            border-color: transparent;
+            box-shadow: 0 0 0 2px var(--ring);
+        }
+
+        .textarea:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Buttons */
+        .button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+            font-family: var(--font-sans);
+        }
+
+        .button-primary {
+            background: var(--primary);
+            color: var(--primary-foreground);
+            height: 3rem;
+            width: 100%;
+            font-size: 1.125rem;
+        }
+
+        .button-primary:hover:not(:disabled) {
+            background: var(--primary-hover);
+        }
+
+        .button-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .button-outline {
+            background: transparent;
+            color: var(--foreground);
+            border: 1px solid var(--border);
+            height: 3rem;
+        }
+
+        .button-outline:hover:not(:disabled) {
+            background: var(--accent);
+        }
+
+        .button-outline:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Loading spinner */
+        .loading-container {
+            text-align: center;
+            padding: 2rem;
+        }
+
+        .spinner {
+            width: 4rem;
+            height: 4rem;
+            margin: 0 auto 1.5rem;
+            border: 4px solid rgba(var(--primary), 0.2);
+            border-top: 4px solid var(--primary);
+            border-radius: 50%;
+        }
+
+        .loading-message {
+            font-size: 1.125rem;
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 0.5rem;
+            background: var(--muted);
+            border-radius: 0.25rem;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--primary);
+            border-radius: 0.25rem;
+        }
+
+        /* Accordion */
+        .accordion-item {
+            border-bottom: 1px solid var(--border);
+        }
+
+        .accordion-trigger {
+            width: 100%;
+            padding: 1rem 1.5rem;
+            background: none;
+            border: none;
+            text-align: left;
+            font-size: 1.25rem;
+            font-weight: 600;
+            font-family: var(--font-serif);
+            color: var(--foreground);
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: background-color 0.2s;
+        }
+
+        .accordion-trigger:hover {
+            background: rgba(var(--accent), 0.5);
+        }
+
+        .accordion-content {
+            padding: 0 1.5rem 1.5rem;
+            line-height: 1.7;
+            color: var(--foreground);
+        }
+
+        .accordion-content.hidden {
+            display: none;
+        }
+
+        .chevron {
+            width: 1rem;
+            height: 1rem;
+            transition: transform 0.2s;
+        }
+
+        .chevron.rotated {
+            transform: rotate(180deg);
+        }
+
+        /* Assignment sections */
+        .assignment-title {
+            font-size: 2rem;
+            font-weight: 700;
+            font-family: var(--font-serif);
+            color: var(--primary);
+            text-align: center;
+            padding: 1.5rem;
+        }
+
+        .section-item {
+            margin-bottom: 2rem;
+        }
+
+        .section-title {
+            font-size: 1.125rem;
+            font-weight: 600;
+            font-family: var(--font-serif);
+            color: var(--primary);
+            margin-bottom: 0.75rem;
+        }
+
+        .section-content {
+            padding-left: 1rem;
+            border-left: 2px solid rgba(var(--primary), 0.2);
+            line-height: 1.7;
+        }
+
+        /* Download section */
+        .download-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1rem;
+        }
+
+        .download-title {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            font-size: 1.25rem;
+            font-family: var(--font-serif);
+        }
+
+        .coming-soon {
+            font-size: 0.75rem;
+            opacity: 0.6;
+            margin-left: 0.5rem;
+        }
+
+        /* Icons */
+        .icon {
+            width: 1.25rem;
+            height: 1.25rem;
+            fill: currentColor;
+        }
+
+        .icon-lg {
+            width: 2rem;
+            height: 2rem;
+        }
+
+        /* Responsive design */
+        @media (min-width: 768px) {
+            .header-title h1 {
+                font-size: 4rem;
+            }
+
+            .download-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+
+        /* Hidden utility */
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-title">
+            <svg class="icon-lg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H19a1 1 0 0 1 1 1v18a1 1 0 0 1-1 1H6.5a1 1 0 0 1 0-5H20"/>
+                <path d="M8 11h8"/>
+                <path d="M8 7h6"/>
+            </svg>
+            <h1 class="font-serif">AI Assignment Generator</h1>
+        </div>
+        <p class="header-subtitle">
+            Generate comprehensive, well-structured academic assignments on any topic with the power of artificial intelligence
+        </p>
+    </header>
+
+    <div class="container">
+        <!-- Input Form -->
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">Enter Your Assignment Topic</h2>
+            </div>
+            <div class="card-content">
+                <div class="form-group">
+                    <textarea 
+                        id="topicInput"
+                        class="textarea"
+                        placeholder="e.g., Climate Change and Environmental Policy, The Impact of Social Media on Society, Renewable Energy Technologies..."
+                    ></textarea>
+                </div>
+                <button id="generateBtn" class="button button-primary">
+                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                        <polyline points="14,2 14,8 20,8"/>
+                        <line x1="16" y1="13" x2="8" y2="13"/>
+                        <line x1="16" y1="17" x2="8" y2="17"/>
+                        <polyline points="10,9 9,9 8,9"/>
+                    </svg>
+                    Generate Assignment
+                </button>
+            </div>
+        </div>
+
+        <!-- Loading State -->
+        <div id="loadingCard" class="card hidden animate-scale-in">
+            <div class="card-content">
+                <div class="loading-container">
+                    <div class="spinner animate-spin"></div>
+                    <div>
+                        <p id="loadingMessage" class="loading-message">Analyzing your topic...</p>
+                        <div class="progress-bar">
+                            <div class="progress-fill animate-progress"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Assignment Output -->
+        <div id="assignmentOutput" class="hidden animate-fade-in">
+            <!-- Assignment Title -->
+            <div class="card">
+                <div class="assignment-title" contenteditable="true" id="assignmentTitle"></div>
+            </div>
+
+            <!-- Assignment Sections -->
+            <div class="card">
+                <div class="card-content" style="padding: 0;">
+                    <!-- Introduction -->
+                    <div class="accordion-item">
+                        <button class="accordion-trigger" onclick="toggleAccordion('introduction')">
+                            Introduction
+                            <svg class="icon chevron" id="introChevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="6,9 12,15 18,9"></polyline>
+                            </svg>
+                        </button>
+                        <div id="introduction" class="accordion-content">
+                            <p contenteditable="true" id="introContent"></p>
+
+                        </div>
+                    </div>
+
+                    <!-- Main Sections -->
+                    <div class="accordion-item">
+                        <button class="accordion-trigger" onclick="toggleAccordion('sections')">
+                            Main Sections
+                            <svg class="icon chevron" id="sectionsChevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="6,9 12,15 18,9"></polyline>
+                            </svg>
+                        </button>
+                        <div id="sections" class="accordion-content">
+                            <div id="sectionsContent"></div>
+                        </div>
+                    </div>
+
+                    <!-- Conclusion -->
+                    <div class="accordion-item">
+                        <button class="accordion-trigger" onclick="toggleAccordion('conclusion')">
+                            Conclusion
+                            <svg class="icon chevron" id="conclusionChevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="6,9 12,15 18,9"></polyline>
+                            </svg>
+                        </button>
+                        <div id="conclusion" class="accordion-content">
+                            <p contenteditable="true" id="conclusionContent"></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Download Options -->
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title download-title">
+                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                            <polyline points="7,10 12,15 17,10"/>
+                            <line x1="12" y1="15" x2="12" y2="3"/>
+                        </svg>
+                        Download Options
+                    </h3>
+                </div>
+                <div class="card-content">
+                    <div class="download-grid">
+                        <button class="button button-outline" onclick="downloadFile('txt')">Download as .txt</button>
+                        <button class="button button-outline" onclick="downloadFile('pdf')">Download as .pdf</button>
+                        <button class="button button-outline" onclick="downloadFile('docx')">Download as .docx</button>
+                    </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+
+        function downloadFile(format) {
+            const title = document.getElementById("assignmentTitle").textContent;
+            const introduction = document.getElementById("introContent").textContent;
+            const conclusion = document.getElementById("conclusionContent").textContent;
+
+            const sections = [];
+            document.querySelectorAll("#sectionsContent .section-item").forEach(item => {
+                const title = item.querySelector(".section-title").textContent;
+                const content = item.querySelector(".section-content").textContent;
+                sections.push({ title, content });
+            });
+
+            fetch("/download-edited", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ format, title, introduction, conclusion, sections })
+            })
+            .then(res => {
+                if (!res.ok) throw new Error("Download failed.");
+                return res.blob();
+            })
+            .then(blob => {
+                const link = document.createElement("a");
+                link.href = window.URL.createObjectURL(blob);
+                link.download = `assignment.${format}`;
+                link.click();
+            })
+            .catch(err => alert("Download failed: " + err.message));
+        }
+
+
+        // State management
+        let isLoading = false;
+        let assignment = null;
+
+        // DOM elements
+        const topicInput = document.getElementById('topicInput');
+        const generateBtn = document.getElementById('generateBtn');
+        const loadingCard = document.getElementById('loadingCard');
+        const loadingMessage = document.getElementById('loadingMessage');
+        const assignmentOutput = document.getElementById('assignmentOutput');
+
+        // Loading messages
+        const loadingMessages = [
+            "Analyzing your topic...",
+            "Researching relevant content...",
+            "Structuring the assignment...",
+            "Generating detailed sections...",
+            "Finalizing your assignment..."
+        ];
+
+        // Event listeners
+        generateBtn.addEventListener('click', generateAssignment);
+        topicInput.addEventListener('input', function() {
+            generateBtn.disabled = !this.value.trim() || isLoading;
+        });
+
+        // Generate assignment function
+        async function generateAssignment() {
+    const topic = topicInput.value.trim();
+    if (!topic || isLoading) return;
+
+    isLoading = true;
+    generateBtn.disabled = true;
+    generateBtn.innerHTML = `
+        <div class="spinner animate-spin" style="width: 1.25rem; height: 1.25rem; margin-right: 0.5rem; border: 2px solid rgba(255,255,255,0.3); border-top: 2px solid white; border-radius: 50%;"></div>
+        Generating Assignment...
+    `;
+
+    loadingCard.classList.remove('hidden');
+    assignmentOutput.classList.add('hidden');
+
+    let messageIndex = 0;
+    loadingMessage.textContent = loadingMessages[0];
+
+    const messageInterval = setInterval(() => {
+        messageIndex = (messageIndex + 1) % loadingMessages.length;
+        loadingMessage.textContent = loadingMessages[messageIndex];
+    }, 800);
+
+    try {
+        const response = await fetch("/generate", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ topic })
+        });
+
+        const data = await response.json();
+        if (data.error) throw new Error(data.error);
+
+        const parsed = JSON.parse(data.output);
+
+        assignment = {
+
+            title: parsed.topic,
+            introduction: parsed.introduction,
+            sections: parsed.main_sections,  // Already has array of { title, content }
+            conclusion: parsed.conclusion
+        };
+
+
+        clearInterval(messageInterval);
+        displayAssignment();
+
+    } catch (error) {
+        console.error("Error generating assignment:", error);
+        alert("Failed to generate assignment. Please try again.");
+    } finally {
+        isLoading = false;
+        generateBtn.disabled = false;
+        generateBtn.innerHTML = `
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14,2 14,8 20,8"/>
+                <line x1="16" y1="13" x2="8" y2="13"/>
+                <line x1="16" y1="17" x2="8" y2="17"/>
+                <polyline points="10,9 9,9 8,9"/>
+            </svg>
+            Generate Assignment
+        `;
+        loadingCard.classList.add("hidden");
+    }
+}
+
+        // Display assignment function
+        function displayAssignment() {
+            if (!assignment) return;
+
+            // Set title
+            document.getElementById('assignmentTitle').textContent = assignment.title;
+
+            // Set introduction
+            document.getElementById('introContent').textContent = assignment.introduction;
+
+            // Set sections
+            const sectionsContent = document.getElementById('sectionsContent');
+            sectionsContent.innerHTML = '';
+            assignment.sections.forEach((section, index) => {
+                const sectionDiv = document.createElement('div');
+                sectionDiv.className = 'section-item';
+                sectionDiv.innerHTML = `
+                <h4 class="section-title" contenteditable="true">${index + 1}. ${section.title}</h4>
+                <div class="section-content" contenteditable="true">
+                    <p>${section.content}</p>
+                </div>
+                `;
+                sectionsContent.appendChild(sectionDiv);
+            });
+
+            // Set conclusion
+            document.getElementById('conclusionContent').textContent = assignment.conclusion;
+
+            // Show assignment output
+            assignmentOutput.classList.remove('hidden');
+            
+            // Open all accordion sections by default
+            openAccordion('introduction');
+            openAccordion('sections'); 
+            openAccordion('conclusion');
+        }
+
+        // Accordion functions
+        function toggleAccordion(id) {
+            const content = document.getElementById(id);
+            const chevron = document.getElementById(id + 'Chevron');
+            
+            if (content.classList.contains('hidden')) {
+                openAccordion(id);
+            } else {
+                closeAccordion(id);
+            }
+        }
+
+        function openAccordion(id) {
+            const content = document.getElementById(id);
+            const chevron = document.getElementById(id + 'Chevron');
+            
+            content.classList.remove('hidden');
+            chevron.classList.add('rotated');
+        }
+
+        function closeAccordion(id) {
+            const content = document.getElementById(id);
+            const chevron = document.getElementById(id + 'Chevron');
+            
+            content.classList.add('hidden');
+            chevron.classList.remove('rotated');
+        }
+
+        // For actual API integration, replace the mock with:
+        /*
+        async function callAPI(topic) {
+            const response = await fetch('/generate', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ topic: topic })
+            });
+            
+            if (!response.ok) {
+                throw new Error('Failed to generate assignment');
+            }
+            
+            return await response.json();
+        }
+        */
+    </script>
+</body>
+</html>
