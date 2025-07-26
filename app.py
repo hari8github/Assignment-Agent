@@ -25,28 +25,28 @@ def generate_assignment():
     try:
         data = request.get_json()
         topic = data.get("topic")
-        print("Received topic:", topic)
         
         if not topic:
             return jsonify({"error": "No topic provided."}), 400
 
         result = create_enhanced_assignment(topic)
         output = result.get("output")
-        print("Output:", output)
         
         if output is None:
             return jsonify({"error": "No output generated"}), 500
             
-        # Parse and store the assignment data globally
         try:
             current_assignment = json.loads(output)
+            
+            if not isinstance(current_assignment.get('sources'), list):
+                current_assignment['sources'] = []
+            
             return jsonify({"success": True, "data": current_assignment})
+            
         except json.JSONDecodeError as e:
-            print(f"JSON decode error: {e}")
             return jsonify({"error": "Invalid JSON response from generator"}), 500
 
     except Exception as e:
-        print("Backend error:", e)
         return jsonify({"error": str(e)}), 500
 
 def format_content_as_text(assignment_data):

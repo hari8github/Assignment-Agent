@@ -3,30 +3,25 @@ from pydantic import BaseModel
 from langchain_groq import ChatGroq
 from langchain_core.prompts import ChatPromptTemplate
 from langchain.agents import create_tool_calling_agent, AgentExecutor
-from tools import search_tool, wiki_tool, save_tool, get_all_sources, search_tracker, wiki_tracker  
+from tools import search_tool, wiki_tool, save_tool, get_all_sources, search_tracker, wiki_tracker, clear_research_cache  
 import json
 import re
 from datetime import datetime
 
 load_dotenv()
 
-# Clear previous sources at start
-search_tracker.found_sources = []
-wiki_tracker.found_sources = []
-
 class AssignmentResponse(BaseModel):
     topic: str
     author: str
     date: str
     introduction: str
-    main_sections: list[dict]  # Each dict has 'title' and 'content'
+    main_sections: list[dict]
     conclusion: str
     sources: list[str]
     tools_used: list[str]
 
 llm = ChatGroq(model="llama3-8b-8192")
 
-# Enhanced research strategy prompt
 research_prompt = ChatPromptTemplate.from_messages([
     (
         "system",
@@ -55,7 +50,6 @@ research_prompt = ChatPromptTemplate.from_messages([
     ("placeholder", "{agent_scratchpad}")
 ])
 
-# Simplified writing prompt with strict JSON output
 writing_prompt = ChatPromptTemplate.from_messages([
     (
         "system",
@@ -109,23 +103,13 @@ writing_prompt = ChatPromptTemplate.from_messages([
 ])
 
 def create_enhanced_assignment(topic: str):
-    """Create assignment using two-stage process: research then write"""
+    clear_research_cache()
     
-    # Stage 1: Research
-    print("🔍 Stage 1: Conducting thorough research...")
     research_agent = create_tool_calling_agent(llm=llm, prompt=research_prompt, tools=[wiki_tool])
     research_executor = AgentExecutor(agent=research_agent, tools=[wiki_tool], verbose=True)
     
-    # Clear previous sources
-    from tools import search_tracker, wiki_tracker
-    search_tracker.found_sources = []
-    wiki_tracker.found_sources = []
-    
-    # Conduct research
     research_result = research_executor.invoke({"topic": topic})
     
-    # Stage 2: Write assignment
-    print("\n✍️  Stage 2: Writing comprehensive assignment...")
     current_date = datetime.now().strftime("%B %d, %Y")
     
     writing_agent = create_tool_calling_agent(
@@ -135,36 +119,26 @@ def create_enhanced_assignment(topic: str):
     )
     writing_executor = AgentExecutor(agent=writing_agent, tools=[save_tool], verbose=True)
     
-    # Write the assignment
     writing_result = writing_executor.invoke({"query": topic})
     
-    # Extract and clean the output
     output = writing_result.get("output", "")
     
-    # Clean the JSON output
     cleaned_output = clean_json_output(output)
     
-    # Parse and add sources
     try:
         parsed_data = json.loads(cleaned_output)
         
-        # Add collected sources if missing or empty
-        if not parsed_data.get('sources') or len(parsed_data['sources']) == 0:
-            collected_sources = get_all_sources()
-            parsed_data['sources'] = collected_sources
+        collected_sources = get_all_sources()
+        parsed_data['sources'] = collected_sources
         
-        # Ensure tools_used is set
         if not parsed_data.get('tools_used'):
             parsed_data['tools_used'] = ["wikipedia"]
         
-        # Convert back to JSON string for return
         final_output = json.dumps(parsed_data, indent=2)
         
         return {"output": final_output}
         
     except json.JSONDecodeError as e:
-        print(f"JSON parsing error: {e}")
-        # Return error structure
         error_response = {
             "topic": topic,
             "author": "AI Research Assistant",
@@ -183,37 +157,30 @@ def create_enhanced_assignment(topic: str):
         return {"output": json.dumps(error_response, indent=2)}
 
 def clean_json_output(output: str) -> str:
-    """Clean and extract JSON from agent output"""
     if not output:
         raise ValueError("Empty output received")
     
-    # Remove any markdown formatting
     cleaned = output.strip()
     
-    # Remove code block markers if present
     if "```json" in cleaned:
         cleaned = cleaned.split("```json")[1].split("```")[0].strip()
     elif "```" in cleaned:
         cleaned = cleaned.split("```")[1].split("```")[0].strip()
     
-    # Find JSON object using regex
     json_pattern = r'\{.*\}'
     json_match = re.search(json_pattern, cleaned, re.DOTALL)
     
     if json_match:
         return json_match.group()
     else:
-        # If no JSON found, assume the entire cleaned output is JSON
         return cleaned
 
 def main():
-    """Main execution function"""
     query = input("Enter the topic for the assignment: ")
     print(f"Creating comprehensive assignment on: {query}")
     print("This will involve thorough research and detailed writing...\n")
     
     try:
-        # Use two-stage process
         result = create_enhanced_assignment(query)
         
         output = result.get("output")
@@ -223,12 +190,10 @@ def main():
         
         print("Assignment generated successfully!")
         
-        # Parse and validate the output
         try:
             parsed_data = json.loads(output)
             structured_response = AssignmentResponse.model_validate(parsed_data)
             
-            # Quality assessment
             total_words = len(structured_response.introduction.split())
             for section in structured_response.main_sections:
                 total_words += len(section['content'].split())
@@ -244,7 +209,6 @@ def main():
             print(f"Research Depth: {'High' if total_words > 1500 else 'Medium' if total_words > 1000 else 'Low'}")
             print("="*60)
             
-            # Save to file using the save tool
             save_result = save_tool.func(output)
             print(f"\n✅ {save_result}")
             
