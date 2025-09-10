@@ -20,7 +20,7 @@ class AssignmentResponse(BaseModel):
     sources: list[str]
     tools_used: list[str]
 
-llm = ChatGroq(model="llama3-8b-8192")
+llm = ChatGroq(model="llama-3.3-70b-versatile")
 
 research_prompt = ChatPromptTemplate.from_messages([
     (
